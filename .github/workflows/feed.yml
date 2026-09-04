@@ -1,0 +1,51 @@
+name: feed
+on:
+  schedule:
+    - cron: '20 15 * * 1-5'
+    - cron: '20 18 * * 1-5'
+    - cron: '50 21 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar los paneles de data912
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, datetime, hashlib
+          PANELS = ["arg_stocks","arg_cedears","arg_bonds","arg_corp","arg_notes",
+                    "usa_stocks","usa_adrs","mep","ccl"]
+          os.makedirs("raw", exist_ok=True)
+          meta = {"source": "data912", "fetcher": "github-actions feed.yml v1",
+                  "panels_ok": 0, "errors": {}, "sha256": {}}
+          for p in PANELS:
+              try:
+                  req = urllib.request.Request("https://data912.com/live/" + p,
+                        headers={"User-Agent": "asesor-feed/1.0", "Accept": "application/json"})
+                  raw = urllib.request.urlopen(req, timeout=60).read()
+                  json.loads(raw)
+                  open("raw/%s.json" % p, "wb").write(raw)
+                  meta["sha256"][p] = hashlib.sha256(raw).hexdigest()[:16]
+                  meta["panels_ok"] += 1
+              except Exception as e:
+                  meta["errors"][p] = str(e)[:200]
+          tz = datetime.timezone(datetime.timedelta(hours=-3))
+          meta["fetched_at"] = datetime.datetime.now(tz).isoformat(timespec="seconds")
+          with open("raw/_meta.json", "w", encoding="utf-8") as f:
+              json.dump(meta, f, indent=1, ensure_ascii=False)
+          print(json.dumps(meta, ensure_ascii=False)[:900])
+          if meta["panels_ok"] == 0:
+              raise SystemExit("data912 no respondio ningun panel")
+          PY
+      - name: Publicar en la rama data (sin historial)
+        run: |
+          git init -q .
+          git config user.name "feed-bot"
+          git config user.email "feed-bot@users.noreply.github.com"
+          git checkout -q --orphan data
+          git add raw
+          git commit -q -m "feed $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -q --force \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
