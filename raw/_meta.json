@@ -1,0 +1,18 @@
+{
+ "source": "data912",
+ "fetcher": "github-actions feed.yml v1",
+ "panels_ok": 9,
+ "errors": {},
+ "sha256": {
+  "arg_stocks": "51f47565b919316b",
+  "arg_cedears": "e5cef55a113b4fba",
+  "arg_bonds": "1a9369f67524630e",
+  "arg_corp": "75a7f98386b7698d",
+  "arg_notes": "2aac49a2acd9e043",
+  "usa_stocks": "48a2695ad662ffdb",
+  "usa_adrs": "2034a6057c0edfe9",
+  "mep": "e2a416d09f3ad6ed",
+  "ccl": "72900fc4da055630"
+ },
+ "fetched_at": "2026-10-23T21:03:13-03:00"
+}
